@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Consultation — MediConnect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#f1f5f9;--white:#fff;--blue:#4F6EF7;--blue-dark:#3d5ce8;--teal:#14b8a6;--teal-dark:#0f9688;--text:#0f172a;--text-mid:#475569;--text-muted:#94a3b8;--border:#e2e8f0}
+    html{font-size:16px}
+    body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;font-size:1rem}
+    body.high-contrast{--bg:#000!important;--white:#111!important;--text:#fff!important;--text-mid:#eee!important;--text-muted:#ccc!important;--border:#555!important}
+    nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{display:flex;align-items:center;gap:10px;font-size:1.0625rem;font-weight:700;text-decoration:none;color:var(--text)}
+    .nav-logo-icon{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:1rem}
+    .back-btn{font-size:0.875rem;color:var(--text-mid);text-decoration:none;font-weight:500;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--white)}
+    .back-btn:hover{border-color:var(--blue);color:var(--blue)}
+    .a11y-bar{background:var(--white);border-bottom:1px solid var(--border);padding:6px 32px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .a11y-label{font-size:0.75rem;color:var(--text-muted);font-weight:500}
+    .a11y-group{display:flex;align-items:center;gap:5px}
+    .a11y-btn{padding:4px 11px;border:1px solid var(--border);border-radius:7px;background:var(--white);font-size:0.75rem;font-weight:600;cursor:pointer;color:var(--text-mid);font-family:'Inter',sans-serif;transition:all 0.15s}
+    .a11y-btn:hover{border-color:var(--blue);color:var(--blue);background:#eef1fe}
+    .a11y-size{font-size:0.75rem;color:var(--text-muted);min-width:32px;text-align:center}
+    .a11y-sep{width:1px;height:18px;background:var(--border);flex-shrink:0}
+    #google_translate_element .goog-te-gadget{font-size:0!important;color:transparent!important}
+    #google_translate_element select{font-size:0.75rem;font-family:'Inter',sans-serif;border:1px solid var(--border);border-radius:7px;padding:4px 8px;background:var(--white);color:var(--text-mid);cursor:pointer;outline:none}
+    .goog-te-banner-frame{display:none!important}
+    body{top:0!important}
+    .page{max-width:900px;margin:0 auto;padding:32px}
+    /* SETUP CARD */
+    .setup-card{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px;text-align:center}
+    .setup-icon{font-size:3.25rem;margin-bottom:16px}
+    .setup-card h2{font-size:1.5rem;font-weight:800;margin-bottom:8px}
+    .setup-card p{font-size:0.9375rem;color:var(--text-mid);margin-bottom:32px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.65}
+    .room-info{background:var(--bg);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:left}
+    .room-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .room-row:last-child{margin-bottom:0}
+    .room-label{font-size:0.8125rem;color:var(--text-muted);font-weight:500}
+    .room-value{font-size:0.875rem;font-weight:700}
+    .room-id{font-size:0.8125rem;font-family:monospace;background:#eef1fe;color:var(--blue);padding:4px 10px;border-radius:6px;font-weight:600}
+    /* POST-CONSULT BANNER */
+    .post-consult-banner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .pcb-text{font-size:0.9375rem;font-weight:600;color:#16a34a}
+    .pcb-sub{font-size:0.8125rem;color:#15803d;margin-top:3px}
+    .pcb-btn{padding:10px 20px;background:var(--blue);color:white;border:none;border-radius:10px;font-size:0.875rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;white-space:nowrap}
+    .pcb-btn:hover{background:var(--blue-dark)}
+    .pcb-skip{padding:10px 14px;background:none;border:1px solid #bbf7d0;border-radius:10px;font-size:0.875rem;cursor:pointer;color:#15803d;font-family:'Inter',sans-serif;white-space:nowrap}
+    /* JOIN BTN */
+    .join-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;background:var(--teal);color:white;border:none;border-radius:14px;font-size:1rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:all 0.18s;box-shadow:0 4px 14px rgba(20,184,166,0.3)}
+    .join-btn:hover{background:var(--teal-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,184,166,0.35)}
+    /* JITSI FRAME */
+    #jitsiContainer{display:none;margin-top:24px}
+    #jitsiFrame{width:100%;height:580px;border:none;border-radius:20px;overflow:hidden}
+    .end-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:12px;font-size:0.875rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-top:16px;transition:all 0.15s}
+    .end-btn:hover{background:#fee2e2}
+    /* TIPS */
+    .tips{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+    .tip{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center}
+    .tip-icon{font-size:1.5rem;margin-bottom:10px}
+    .tip h4{font-size:0.875rem;font-weight:700;margin-bottom:6px}
+    .tip p{font-size:0.8125rem;color:var(--text-muted);line-height:1.5}
+    @media(max-width:600px){.tips{grid-template-columns:1fr}.post-consult-banner{flex-direction:column;align-items:flex-start}}
+  </style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">🤍</div>MediConnect
+  </a>
+  <a id="backBtn" href="patient-dashboard.html" class="back-btn">← Back to Dashboard</a>
+</nav>
+<div class="a11y-bar">
+  <span class="a11y-label">Accessibility:</span>
+  <div class="a11y-group">
+    <span class="a11y-label">Font</span>
+    <button class="a11y-btn" onclick="A11y.changeFont(-2)">A−</button>
+    <span class="a11y-size" id="fontLabel">16px</span>
+    <button class="a11y-btn" onclick="A11y.changeFont(2)">A+</button>
+  </div>
+  <div class="a11y-sep"></div>
+  <button class="a11y-btn" id="contrastBtn" onclick="A11y.toggleContrast()">🌑 High Contrast</button>
+  <div class="a11y-sep"></div>
+  <span class="a11y-label">🌐</span>
+  <div id="google_translate_element"></div>
+</div>
+
+<div class="page">
+  <!-- Post-consultation banner (shown if doctor has pending consult context) -->
+  <div id="postConsultBanner" style="display:none" class="post-consult-banner">
+    <div>
+      <div class="pcb-text">✅ Consultation ended — write a prescription?</div>
+      <div class="pcb-sub" id="pcbPatientName"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="pcb-btn" onclick="goWritePrescription()">💊 Write Prescription</button>
+      <button class="pcb-skip" onclick="skipPrescription()">Skip</button>
+    </div>
+  </div>
+
+  <!-- Setup screen -->
+  <div class="setup-card" id="setupCard">
+    <div class="setup-icon">🎥</div>
+    <h2>Video Consultation Room</h2>
+    <p>You'll be connected to a secure video room. Share the Room ID with your doctor or patient so they can join the same room.</p>
+    <div class="room-info">
+      <div class="room-row"><span class="room-label">Your Name</span><span class="room-value" id="displayName">Loading...</span></div>
+      <div class="room-row"><span class="room-label">Role</span><span class="room-value" id="displayRole">—</span></div>
+      <div class="room-row"><span class="room-label">Room ID</span><span class="room-id" id="roomIdDisplay">Loading...</span></div>
+      <div class="room-row"><span class="room-label">Status</span><span style="color:#16a34a;font-size:0.8125rem;font-weight:600">🟢 Ready to join</span></div>
+    </div>
+    <button class="join-btn" onclick="joinRoom()">🎥 Join Video Room</button>
+  </div>
+
+  <!-- Jitsi frame -->
+  <div id="jitsiContainer">
+    <iframe id="jitsiFrame" allow="camera; microphone; display-capture; fullscreen"></iframe>
+    <div style="text-align:center">
+      <button class="end-btn" onclick="endConsultation()">📴 End Consultation</button>
+    </div>
+  </div>
+
+  <!-- Tips -->
+  <div class="tips">
+    <div class="tip"><div class="tip-icon">🎤</div><h4>Check your mic</h4><p>Make sure your microphone isn't muted before joining.</p></div>
+    <div class="tip"><div class="tip-icon">💡</div><h4>Good lighting</h4><p>Sit facing a light source for the clearest video quality.</p></div>
+    <div class="tip"><div class="tip-icon">🔒</div><h4>Private room</h4><p>Your room ID is unique. Share only with your doctor or patient.</p></div>
+  </div>
+</div>
+
+<script>
+const A11y={fontSize:parseInt(localStorage.getItem('mc_fs')||'16'),hiContrast:localStorage.getItem('mc_hc')==='true',speaking:false,init(){document.documentElement.style.fontSize=this.fontSize+'px';const l=document.getElementById('fontLabel');if(l)l.textContent=this.fontSize+'px';if(this.hiContrast){document.body.classList.add('high-contrast');const b=document.getElementById('contrastBtn');if(b)b.textContent='☀️ Normal';}},changeFont(d){this.fontSize=Math.min(22,Math.max(12,this.fontSize+d));localStorage.setItem('mc_fs',this.fontSize);document.documentElement.style.fontSize=this.fontSize+'px';const l=document.getElementById('fontLabel');if(l)l.textContent=this.fontSize+'px';},toggleContrast(){this.hiContrast=!this.hiContrast;localStorage.setItem('mc_hc',this.hiContrast);document.body.classList.toggle('high-contrast',this.hiContrast);const b=document.getElementById('contrastBtn');if(b)b.textContent=this.hiContrast?'☀️ Normal':'🌑 High Contrast';}};
+A11y.init();
+
+// Auth check
+const uRaw = localStorage.getItem('user');
+if (!uRaw) location.href = 'login-patient.html';
+const user = JSON.parse(uRaw||'{}');
+
+// Set back button based on role
+document.getElementById('backBtn').href = user.role==='doctor' ? 'doctor-dashboard.html' : 'patient-dashboard.html';
+
+// Set display info
+document.getElementById('displayName').textContent = user.name;
+document.getElementById('displayRole').textContent = user.role==='doctor' ? '🩺 Doctor' : '👤 Patient';
+
+// Build room ID — for a real system this would come from the appointment
+// Doctors and patients share the same room if they have an appointment together
+let roomId;
+const pendingConsult = localStorage.getItem('mc_pending_consult');
+if (pendingConsult) {
+  const ctx = JSON.parse(pendingConsult);
+  // Room tied to appointment ID so doctor and patient land in same room
+  roomId = 'mediconnect-appt-' + ctx.apptId;
+} else {
+  // Fallback: room tied to user ID + today
+  roomId = 'mediconnect-' + user.id + '-' + new Date().toISOString().split('T')[0];
+}
+document.getElementById('roomIdDisplay').textContent = roomId;
+
+// Check post-consultation banner for doctors
+if (user.role === 'doctor' && pendingConsult) {
+  const ctx = JSON.parse(pendingConsult);
+  document.getElementById('postConsultBanner').style.display='flex';
+  document.getElementById('pcbPatientName').textContent='Patient: '+ctx.patientName;
+}
+
+function joinRoom() {
+  document.getElementById('setupCard').style.display='none';
+  document.getElementById('jitsiContainer').style.display='block';
+  const displayName = encodeURIComponent((user.role==='doctor'?'Dr. ':'')+user.name);
+  const url = `https://meet.jit.si/${roomId}#userInfo.displayName="${displayName}"&config.startWithVideoMuted=false&config.startWithAudioMuted=false&config.prejoinPageEnabled=false`;
+  document.getElementById('jitsiFrame').src = url;
+}
+
+function endConsultation() {
+  document.getElementById('jitsiFrame').src='';
+  document.getElementById('jitsiContainer').style.display='none';
+  document.getElementById('setupCard').style.display='block';
+  // If doctor, show post-consult banner
+  if (user.role==='doctor' && localStorage.getItem('mc_pending_consult')) {
+    document.getElementById('postConsultBanner').style.display='flex';
+  }
+}
+
+function goWritePrescription() {
+  // Navigate back to doctor dashboard — it will detect the pending consult and show rx modal
+  location.href='doctor-dashboard.html';
+}
+function skipPrescription() {
+  localStorage.removeItem('mc_pending_consult');
+  document.getElementById('postConsultBanner').style.display='none';
+}
+
+function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'hi,mr,ta,te,en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element');}
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>

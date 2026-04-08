@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient Login — MediConnect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#f1f5f9;--white:#fff;--blue:#4F6EF7;--blue-dark:#3d5ce8;--text:#0f172a;--text-mid:#475569;--text-muted:#94a3b8;--border:#e2e8f0;--input-bg:#f8fafc}
+    html{font-size:16px}
+    body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;display:flex;flex-direction:column;font-size:1rem}
+    body.high-contrast{--bg:#000!important;--white:#111!important;--text:#fff!important;--text-mid:#eee!important;--text-muted:#ccc!important;--border:#555!important;--blue:#6fa3ff!important}
+    .a11y-bar{background:var(--white);border-bottom:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:'Inter',sans-serif}
+    .a11y-label{font-size:0.75rem;color:var(--text-muted);font-weight:500}
+    .a11y-group{display:flex;align-items:center;gap:5px}
+    .a11y-btn{padding:4px 11px;border:1px solid var(--border);border-radius:7px;background:var(--white);font-size:0.75rem;font-weight:600;cursor:pointer;color:var(--text-mid);font-family:'Inter',sans-serif;transition:all 0.15s}
+    .a11y-btn:hover{border-color:var(--blue);color:var(--blue);background:#eef1fe}
+    .a11y-size{font-size:0.75rem;color:var(--text-muted);min-width:32px;text-align:center}
+    .a11y-sep{width:1px;height:18px;background:var(--border);flex-shrink:0}
+    #google_translate_element .goog-te-gadget{font-size:0!important;color:transparent!important}
+    #google_translate_element select{font-size:0.75rem;font-family:'Inter',sans-serif;border:1px solid var(--border);border-radius:7px;padding:4px 8px;background:var(--white);color:var(--text-mid);cursor:pointer;outline:none}
+    .goog-te-banner-frame{display:none!important}
+    body{top:0!important}
+    .page-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{background:var(--white);border-radius:20px;padding:40px;width:100%;max-width:440px;box-shadow:0 4px 24px rgba(0,0,0,0.07)}
+    .card-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px}
+    .logo-icon{width:42px;height:42px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+    .logo-name{font-size:1.25rem;font-weight:700}
+    h2{font-size:1.5rem;font-weight:800;text-align:center;margin-bottom:6px}
+    .sub{font-size:0.875rem;color:var(--text-muted);text-align:center;margin-bottom:28px}
+    .tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:24px;gap:4px}
+    .tab{flex:1;padding:9px;border:none;border-radius:9px;font-size:0.875rem;font-weight:600;cursor:pointer;background:transparent;color:var(--text-muted);font-family:'Inter',sans-serif;text-decoration:none;text-align:center;display:block;transition:all 0.15s}
+    .tab.active{background:var(--white);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:0.875rem;font-weight:600;margin-bottom:8px}
+    .iw{display:flex;align-items:center;background:var(--input-bg);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.15s}
+    .iw:focus-within{border-color:var(--blue);background:var(--white)}
+    .ii{padding:0 14px;font-size:1rem;color:var(--text-muted);flex-shrink:0}
+    .iw input{flex:1;border:none;background:transparent;padding:13px 14px 13px 0;font-size:0.875rem;font-family:'Inter',sans-serif;color:var(--text);outline:none}
+    .iw input::placeholder{color:var(--text-muted)}
+    .eye{padding:0 14px;background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)}
+    .btn{width:100%;padding:14px;background:var(--blue);color:white;border:none;border-radius:12px;font-size:1rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;margin-top:8px;transition:all 0.18s}
+    .btn:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,110,247,0.3)}
+    .btn:disabled{opacity:0.7;cursor:not-allowed;transform:none}
+    .footer{text-align:center;margin-top:18px;font-size:0.875rem;color:var(--text-muted)}
+    .footer a{color:var(--blue);text-decoration:none;font-weight:600}
+    .msg{font-size:0.8125rem;padding:10px 14px;border-radius:10px;margin-bottom:16px;display:none}
+    .err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+    .ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a}
+    .back{text-align:center;margin-top:10px}
+    .back a{font-size:0.8125rem;color:var(--text-muted);text-decoration:none}
+    .back a:hover{color:var(--blue)}
+  </style>
+</head>
+<body>
+<div class="a11y-bar">
+  <span class="a11y-label">Accessibility:</span>
+  <div class="a11y-group">
+    <span class="a11y-label">Font</span>
+    <button class="a11y-btn" onclick="A11y.changeFont(-2)">A−</button>
+    <span class="a11y-size" id="fontLabel">16px</span>
+    <button class="a11y-btn" onclick="A11y.changeFont(2)">A+</button>
+  </div>
+  <div class="a11y-sep"></div>
+  <button class="a11y-btn" id="contrastBtn" onclick="A11y.toggleContrast()">🌑 High Contrast</button>
+  <button class="a11y-btn" id="ttsBtn" onclick="A11y.readPage()">🔊 Read Page</button>
+  <div class="a11y-sep"></div>
+  <span class="a11y-label">🌐</span>
+  <div id="google_translate_element"></div>
+</div>
+<div class="page-body">
+  <div class="card">
+    <div class="card-logo"><div class="logo-icon">🤍</div><span class="logo-name">MediConnect</span></div>
+    <div class="tabs">
+      <a href="login-patient.html" class="tab active">Patient Login</a>
+      <a href="login-doctor.html" class="tab">Doctor Login</a>
+    </div>
+    <h2>Patient Login</h2>
+    <p class="sub">Welcome back! Sign in to continue.</p>
+    <div class="msg err" id="err"></div>
+    <div class="msg ok" id="ok"></div>
+    <div class="field"><label>Email</label><div class="iw"><span class="ii">✉️</span><input type="email" id="email" placeholder="you@example.com"/></div></div>
+    <div class="field"><label>Password</label><div class="iw"><span class="ii">🔒</span><input type="password" id="pwd" placeholder="••••••••"/><button class="eye" onclick="togglePwd()" type="button">👁️</button></div></div>
+    <button class="btn" id="btn" onclick="login()">Sign In</button>
+    <p class="footer">Don't have an account? <a href="register.html">Create one</a></p>
+    <div class="back"><a href="index.html">← Back to home</a></div>
+  </div>
+</div>
+<script>
+
+// ── ACCESSIBILITY ─────────────
+const A11y = {
+  fontSize: parseInt(localStorage.getItem('mc_fs') || '16'),
+  hiContrast: localStorage.getItem('mc_hc') === 'true',
+  speaking: false,
+
+  init() {
+    document.documentElement.style.fontSize = this.fontSize + 'px';
+    const l = document.getElementById('fontLabel');
+    if (l) l.textContent = this.fontSize + 'px';
+
+    if (this.hiContrast) {
+      document.body.classList.add('high-contrast');
+      const b = document.getElementById('contrastBtn');
+      if (b) b.textContent = '☀️ Normal Mode';
+    }
+  },
+
+  changeFont(d) {
+    this.fontSize = Math.min(22, Math.max(12, this.fontSize + d));
+    localStorage.setItem('mc_fs', this.fontSize);
+    document.documentElement.style.fontSize = this.fontSize + 'px';
+    document.getElementById('fontLabel').textContent = this.fontSize + 'px';
+  },
+
+  toggleContrast() {
+    this.hiContrast = !this.hiContrast;
+    localStorage.setItem('mc_hc', this.hiContrast);
+    document.body.classList.toggle('high-contrast', this.hiContrast);
+    document.getElementById('contrastBtn').textContent =
+      this.hiContrast ? '☀️ Normal Mode' : '🌑 High Contrast';
+  },
+
+  readPage() {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(document.querySelector('.card').innerText);
+    u.lang = 'en-IN';
+    window.speechSynthesis.speak(u);
+  }
+};
+
+A11y.init();
+
+// ✅ IMPORTANT FIX
+localStorage.removeItem('user');
+
+// ── LOGIN ─────────────
+function togglePwd() {
+  const i = document.getElementById('pwd');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+async function login() {
+  const email = document.getElementById('email').value.trim();
+  const pwd = document.getElementById('pwd').value;
+
+  const err = document.getElementById('err');
+  const ok = document.getElementById('ok');
+  const btn = document.getElementById('btn');
+
+  err.style.display = ok.style.display = 'none';
+
+  if (!email || !pwd) {
+    err.textContent = 'Please fill in all fields.';
+    err.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const r = await fetch(`/api/auth/login/patient`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pwd })
+    });
+
+    const d = await r.json();
+
+    if (d.success) {
+      localStorage.setItem('user', JSON.stringify(d.user));
+      ok.textContent = 'Login successful!';
+      ok.style.display = 'block';
+
+      setTimeout(() => {
+        location.href = 'patient-dashboard.html';
+      }, 800);
+
+    } else {
+      err.textContent = d.message || 'Login failed.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+
+  } catch {
+    err.textContent = 'Cannot connect to server.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+// Enter key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+// Google Translate
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement({
+    pageLanguage: 'en',
+    includedLanguages: 'hi,mr,ta,te,en'
+  }, 'google_translate_element');
+}
+</script>
+
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>
