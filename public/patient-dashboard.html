@@ -298,340 +298,123 @@
 </div>
 
 <script>
-// ── AUTH ──────────────────────────────────────────────
+
+// ── AUTH ─────────────
 const uRaw = localStorage.getItem('user');
 if (!uRaw) location.href = 'login-patient.html';
-const user = JSON.parse(uRaw || '{}');
+
+const user = JSON.parse(uRaw);
 if (user.role !== 'patient') location.href = 'login-doctor.html';
-document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + user.name.split(' ')[0] + '! 👋';
 
-// ── A11Y ──────────────────────────────────────────────
-const A11y = {
-  fontSize: parseInt(localStorage.getItem('mc_fs') || '16'),
-  hiContrast: localStorage.getItem('mc_hc') === 'true',
-  speaking: false,
-  init() {
-    document.documentElement.style.fontSize = this.fontSize + 'px';
-    const l = document.getElementById('fontLabel'); if(l) l.textContent = this.fontSize+'px';
-    if (this.hiContrast) { document.body.classList.add('high-contrast'); const b=document.getElementById('contrastBtn'); if(b) b.textContent='☀️ Normal'; }
-  },
-  changeFont(d) {
-    this.fontSize = Math.min(22,Math.max(12,this.fontSize+d));
-    localStorage.setItem('mc_fs', this.fontSize);
-    document.documentElement.style.fontSize = this.fontSize+'px';
-    const l=document.getElementById('fontLabel'); if(l) l.textContent=this.fontSize+'px';
-  },
-  toggleContrast() {
-    this.hiContrast=!this.hiContrast; localStorage.setItem('mc_hc',this.hiContrast);
-    document.body.classList.toggle('high-contrast',this.hiContrast);
-    const b=document.getElementById('contrastBtn'); if(b) b.textContent=this.hiContrast?'☀️ Normal':'🌑 High Contrast';
-  },
-  readPage() {
-    if(!window.speechSynthesis){alert('TTS not supported');return;}
-    const b=document.getElementById('ttsBtn');
-    if(this.speaking){window.speechSynthesis.cancel();this.speaking=false;if(b)b.textContent='🔊 Read Page';return;}
-    const u=new SpeechSynthesisUtterance(document.querySelector('.layout').innerText.substring(0,3000));
-    u.lang='en-IN';u.rate=0.9;
-    u.onend=()=>{this.speaking=false;if(b)b.textContent='🔊 Read Page';};
-    this.speaking=true;if(b)b.textContent='🔇 Stop';
-    window.speechSynthesis.speak(u);
-  }
-};
-A11y.init();
+document.getElementById('welcomeMsg').textContent =
+  'Welcome back, ' + user.name.split(' ')[0] + '! 👋';
 
-// ── NOTIFICATIONS ─────────────────────────────────────
-let notifs = JSON.parse(localStorage.getItem('mc_notif')||'[]');
-function addNotif(msg,type='info') {
-  notifs.unshift({id:Date.now(),msg,type,read:false,time:new Date().toLocaleTimeString()});
-  if(notifs.length>15)notifs.pop();
-  localStorage.setItem('mc_notif',JSON.stringify(notifs));
-  updateBadge(); toast(msg,type);
-}
-function updateBadge(){const b=document.getElementById('notifBadge'),n=notifs.filter(x=>!x.read).length;if(b){b.textContent=n;b.style.display=n>0?'flex':'none';}}
-function toast(msg,type){const t=document.createElement('div');t.className='mc-toast mc-toast-'+(type||'info');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.classList.add('show'),10);setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3500);}
-function toggleNotif(){const dd=document.getElementById('notifDropdown');dd.classList.toggle('open');if(dd.classList.contains('open'))renderNotifPanel();}
-function renderNotifPanel(){
-  const p=document.getElementById('notifPanel');
-  if(!notifs.length){p.innerHTML='<div style="padding:16px;text-align:center;font-size:13px;color:#94a3b8">No notifications</div>';return;}
-  p.innerHTML=notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}"><div class="notif-dot" style="background:${n.type==='success'?'#16a34a':n.type==='warning'?'#d97706':'#4F6EF7'}"></div><div><div class="notif-msg">${n.msg}</div><div class="notif-time">${n.time}</div></div></div>`).join('');
-  notifs.forEach(n=>n.read=true);localStorage.setItem('mc_notif',JSON.stringify(notifs));updateBadge();
-}
-document.addEventListener('click',e=>{if(!e.target.closest('.notif-wrap'))document.getElementById('notifDropdown').classList.remove('open');});
-updateBadge();
-
-// ── TABS ──────────────────────────────────────────────
-const TABS = ['doctors','appts','rx','past'];
-const PANELS = {doctors:'panelDoctors',appts:'panelAppts',rx:'panelRx',past:'panelPast'};
-const TABIDS = {doctors:'tabDoctors',appts:'tabAppts',rx:'tabRx',past:'tabPast'};
-function showTab(tab) {
-  TABS.forEach(t=>{
-    document.getElementById(PANELS[t]).style.display='none';
-    document.getElementById(TABIDS[t]).classList.remove('active');
-  });
-  document.getElementById(PANELS[tab]).style.display='block';
-  document.getElementById(TABIDS[tab]).classList.add('active');
-  if(tab==='appts') loadMyAppointments();
-  if(tab==='rx')    loadPrescriptions();
-  if(tab==='past')  loadPastVisits();
-}
-
-// ── LOAD DOCTORS ──────────────────────────────────────
-let allDoctors = [];
-const COLORS = ['#4F6EF7','#14b8a6','#8b5cf6','#f59e0b','#ec4899','#10b981','#f97316','#06b6d4'];
-
+// ── LOAD DOCTORS ─────────────
 async function loadDoctors() {
   const el = document.getElementById('doctorList');
+
   try {
-    // Always try the real API first
-    const r = await fetch('http://localhost:5000/api/doctors');
-    if (!r.ok) throw new Error('HTTP '+r.status);
+    const r = await fetch('/api/doctors');
     const d = await r.json();
 
-    if (d.doctors && d.doctors.length > 0) {
-      allDoctors = d.doctors.map((doc,i) => ({
-        ...doc,
-        color: COLORS[i % COLORS.length],
-        available: true,
-        rating: (4.6 + Math.random()*0.4).toFixed(1)
-      }));
-      document.getElementById('serverWarn').classList.remove('show');
-    } else {
-      // Server is running but no doctors registered yet
-      allDoctors = [];
-      el.innerHTML = `<div class="empty"><div class="e">👨‍⚕️</div><p>No doctors registered yet.<br>Ask your doctor to register at <strong><a href="register.html?role=doctor" style="color:var(--blue)">register.html</a></strong></p></div>`;
-      document.getElementById('serverWarn').classList.remove('show');
+    if (!d.doctors || d.doctors.length === 0) {
+      el.innerHTML = 'No doctors available.';
       return;
     }
-  } catch (err) {
-    // Server not reachable — show warning and NO demo doctors
-    document.getElementById('serverWarn').classList.add('show');
-    allDoctors = [];
-    el.innerHTML = `<div class="empty"><div class="e">⚠️</div><p><strong>Server not running.</strong><br>Run <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">node server.js</code> in your project folder,<br>then open <strong>http://localhost:5000</strong></p></div>`;
-    return;
-  }
 
-  renderDoctors(allDoctors);
-  populateSelect(allDoctors);
-}
-
-function renderDoctors(docs) {
-  const el = document.getElementById('doctorList');
-  if (!docs.length) {
-    el.innerHTML = '<div class="empty"><div class="e">🔍</div><p>No doctors found matching your search.</p></div>'; return;
-  }
-  el.innerHTML = docs.map(doc => {
-    const ini = doc.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-    return `<div class="doctor-card">
-      <div class="doc-avatar" style="background:${doc.color}">${ini}</div>
-      <div class="doc-info">
-        <div class="doc-name">Dr. ${doc.name}</div>
-        <div class="doc-meta">
-          <span>🩺 ${doc.specialization}</span>
-          <span>⭐ ${doc.rating||'4.8'}</span>
-          <span><span class="avail-dot"></span>Available</span>
-        </div>
+    el.innerHTML = d.doctors.map(doc => `
+      <div>
+        Dr. ${doc.name} (${doc.specialization})
+        <button onclick="book(${doc.id})">Book</button>
       </div>
-      <button class="book-btn" onclick="openModalFor(${doc.id},'${doc.name}','${doc.specialization}','${doc.color}')">Book</button>
-    </div>`;
-  }).join('');
-}
+    `).join('');
 
-function filterDoctors() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = allDoctors.filter(d => d.name.toLowerCase().includes(q) || d.specialization.toLowerCase().includes(q));
-  if (allDoctors.length === 0) return; // server down — don't overwrite the error
-  renderDoctors(filtered);
-}
-
-function populateSelect(docs) {
-  const sel = document.getElementById('mDoctor');
-  sel.innerHTML = '<option value="">Select a doctor...</option>';
-  docs.forEach(doc => {
-    const o = document.createElement('option');
-    o.value = doc.id;
-    o.textContent = 'Dr. '+doc.name+' — '+doc.specialization;
-    o.dataset.name  = doc.name;
-    o.dataset.spec  = doc.specialization;
-    o.dataset.color = doc.color;
-    sel.appendChild(o);
-  });
-}
-
-// ── LOAD APPOINTMENTS ─────────────────────────────────
-async function loadMyAppointments() {
-  try {
-    const r = await fetch('http://localhost:5000/api/appointments/patient/'+user.id);
-    const d = await r.json();
-    const appts = d.appointments||[];
-    const upcoming = appts.filter(a=>a.status==='pending'||a.status==='confirmed');
-    document.getElementById('statAppts').textContent = appts.length;
-    renderUpcoming(upcoming);
-    renderApptList(appts);
-    upcoming.filter(a=>a.status==='confirmed').forEach(a=>addNotif('✅ Appointment confirmed with Dr. '+a.doctor_name,'success'));
   } catch {
-    document.getElementById('apptList').innerHTML='<div class="empty"><div class="e">📅</div><p>Could not load. Server not running?</p></div>';
+    el.innerHTML = 'Server error.';
   }
 }
 
-function renderUpcoming(appts) {
-  const el = document.getElementById('upcomingList');
-  if(!appts.length){el.innerHTML='<div class="empty"><div class="e">📅</div><p>No upcoming appointments</p></div>';return;}
-  el.innerHTML = appts.slice(0,3).map(a=>`
-    <div class="appt-card">
-      <div class="appt-top"><div class="appt-doc">Dr. ${a.doctor_name}</div><span class="badge ${a.status}">${a.status}</span></div>
-      <div class="appt-meta"><span>🩺 ${a.specialization}</span><span>📅 ${new Date(a.date).toDateString()}</span><span>🕐 ${a.time}</span></div>
-      <button class="view-btn" onclick="showTab('appts')">View Details ›</button>
-    </div>`).join('');
-}
-
-function renderApptList(appts) {
+// ── LOAD APPOINTMENTS ─────────────
+async function loadAppointments() {
   const el = document.getElementById('apptList');
-  if(!appts.length){el.innerHTML='<div class="empty"><div class="e">📅</div><p>No appointments yet. Book one!</p></div>';return;}
-  el.innerHTML = appts.map(a=>`
-    <div class="appt-card">
-      <div class="appt-top"><div class="appt-doc">Dr. ${a.doctor_name}</div><span class="badge ${a.status}">${a.status}</span></div>
-      <div class="appt-meta"><span>🩺 ${a.specialization}</span><span>📅 ${new Date(a.date).toDateString()}</span><span>🕐 ${a.time}</span></div>
-    </div>`).join('');
-}
 
-// ── LOAD PRESCRIPTIONS ────────────────────────────────
-async function loadPrescriptions() {
   try {
-    const r = await fetch('http://localhost:5000/api/prescriptions/patient/'+user.id);
+    const r = await fetch('/api/appointments/patient/' + user.id);
     const d = await r.json();
-    const rxs = d.prescriptions||[];
-    const seen = JSON.parse(localStorage.getItem('mc_seen_rx')||'[]');
-    document.getElementById('statRx').textContent = rxs.length;
-    const el = document.getElementById('rxList');
-    if(!rxs.length){el.innerHTML='<div class="empty"><div class="e">💊</div><p>No prescriptions yet.</p></div>';return;}
-    rxs.forEach(rx=>{if(!seen.includes(rx.id))addNotif('💊 New prescription from Dr. '+rx.doctor_name+': '+rx.medicine,'info');});
-    localStorage.setItem('mc_seen_rx',JSON.stringify(rxs.map(r=>r.id)));
-    el.innerHTML = rxs.map(rx=>{
-      const isNew=!seen.includes(rx.id);
-      return `<div class="rx-card">
-        <div class="rx-header">
-          <div class="rx-med">💊 ${rx.medicine}${isNew?'<span class="rx-new">NEW</span>':''}</div>
-          <div class="rx-date">${new Date(rx.created_at).toLocaleDateString('en-IN')}</div>
-        </div>
-        <div class="rx-dosage">📋 Dosage: ${rx.dosage}</div>
-        ${rx.notes?`<div class="rx-notes">📝 ${rx.notes}</div>`:''}
-        <div class="rx-doc">👨‍⚕️ Dr. ${rx.doctor_name} · ${rx.specialization}</div>
-      </div>`;
-    }).join('');
-  } catch { document.getElementById('rxList').innerHTML='<div class="empty"><div class="e">💊</div><p>No prescriptions yet.</p></div>'; }
-}
 
-// ── PAST VISITS ───────────────────────────────────────
-async function loadPastVisits() {
-  const el = document.getElementById('pastList');
-  try {
-    const r = await fetch('http://localhost:5000/api/appointments/patient/'+user.id);
-    const d = await r.json();
-    const past = (d.appointments||[]).filter(a=>a.status==='completed'||a.status==='cancelled');
-    if(!past.length){el.innerHTML='<div class="empty"><div class="e">📋</div><p>No past consultations yet.</p></div>';return;}
-    el.innerHTML = past.map(a=>`
-      <div class="past-card">
-        <div class="past-avatar">👤</div>
-        <div class="past-info">
-          <div class="past-name">Dr. ${a.doctor_name}</div>
-          <div class="past-date">${a.specialization} · ${new Date(a.date).toDateString()}</div>
-        </div>
-        <span class="badge ${a.status}">${a.status}</span>
-      </div>`).join('');
-  } catch { el.innerHTML='<div class="empty"><div class="e">📋</div><p>No past visits.</p></div>'; }
-}
+    const appts = d.appointments || [];
 
-// ── MODAL ─────────────────────────────────────────────
-let selDate='', selTime='';
-const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const TIMES = ['9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM'];
+    el.innerHTML = appts.map(a => `
+      <div>
+        Dr. ${a.doctor_name} | ${a.date} | ${a.time}
+      </div>
+    `).join('');
 
-function buildDatePills() {
-  const c=document.getElementById('datePills'), today=new Date(); c.innerHTML='';
-  for(let i=0;i<7;i++){
-    const d=new Date(today); d.setDate(today.getDate()+i);
-    const ds=d.toISOString().split('T')[0];
-    const pill=document.createElement('div');
-    pill.className='date-pill'+(i===0?' active':'');
-    pill.innerHTML=`<div class="date-day">${DAYS[d.getDay()]}</div><div class="date-num">${d.getDate()}</div>`;
-    if(i===0) selDate=ds;
-    pill.onclick=()=>{document.querySelectorAll('.date-pill').forEach(p=>p.classList.remove('active'));pill.classList.add('active');selDate=ds;};
-    c.appendChild(pill);
+  } catch {
+    el.innerHTML = 'Error loading appointments';
   }
 }
-function buildTimeSlots() {
-  document.getElementById('timeSlots').innerHTML=TIMES.map(t=>`<div class="time-slot" onclick="pickTime(this,'${t}')">${t}</div>`).join('');
-}
-function pickTime(el,t){document.querySelectorAll('.time-slot').forEach(s=>s.classList.remove('active'));el.classList.add('active');selTime=t;}
 
-function updatePreview() {
-  const sel=document.getElementById('mDoctor'),opt=sel.options[sel.selectedIndex];
-  const pv=document.getElementById('docPreview');
-  if(!sel.value){pv.style.display='none';return;}
-  const ini=opt.dataset.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-  document.getElementById('previewAvatar').textContent=ini;
-  document.getElementById('previewAvatar').style.background=opt.dataset.color||'#4F6EF7';
-  document.getElementById('previewName').textContent='Dr. '+opt.dataset.name;
-  document.getElementById('previewSpec').textContent=opt.dataset.spec;
-  pv.style.display='flex';
-}
+// ── LOAD PRESCRIPTIONS ─────────────
+async function loadPrescriptions() {
+  const el = document.getElementById('rxList');
 
-function openModal() {
-  if(allDoctors.length===0){toast('⚠️ Server not running! Open http://localhost:5000','warning');return;}
-  selDate='';selTime='';
-  buildDatePills();buildTimeSlots();
-  document.getElementById('mDoctor').value='';
-  document.getElementById('docPreview').style.display='none';
-  document.getElementById('modalErr').style.display=document.getElementById('modalOk').style.display='none';
-  document.getElementById('overlay').classList.add('open');
-}
-
-function openModalFor(doctorId, name, spec, color) {
-  openModal();
-  if(allDoctors.length===0) return;
-  document.getElementById('mDoctor').value=doctorId;
-  // Manually set preview
-  const ini=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-  document.getElementById('previewAvatar').textContent=ini;
-  document.getElementById('previewAvatar').style.background=color||'#4F6EF7';
-  document.getElementById('previewName').textContent='Dr. '+name;
-  document.getElementById('previewSpec').textContent=spec;
-  document.getElementById('docPreview').style.display='flex';
-}
-
-function closeModal(){document.getElementById('overlay').classList.remove('open');}
-document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
-
-async function bookAppointment() {
-  const doctor_id=document.getElementById('mDoctor').value;
-  const errEl=document.getElementById('modalErr'),okEl=document.getElementById('modalOk'),btn=document.getElementById('confirmBtn');
-  errEl.style.display=okEl.style.display='none';
-  if(!doctor_id){errEl.textContent='Please select a doctor.';errEl.style.display='block';return;}
-  if(!selDate)  {errEl.textContent='Please select a date.';errEl.style.display='block';return;}
-  if(!selTime)  {errEl.textContent='Please select a time slot.';errEl.style.display='block';return;}
-  btn.disabled=true;btn.textContent='Booking...';
   try {
-    const r=await fetch('http://localhost:5000/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({patient_id:user.id,doctor_id,date:selDate,time:selTime})});
-    const d=await r.json();
-    if(d.success){
-      okEl.textContent='✅ Appointment booked successfully!';okEl.style.display='block';
-      addNotif('📅 Appointment booked!','success');
-      setTimeout(()=>{closeModal();loadMyAppointments();showTab('appts');},1500);
-    } else {errEl.textContent=d.message||'Booking failed.';errEl.style.display='block';}
-  } catch {errEl.textContent='Server error. Open http://localhost:5000, not port 5500.';errEl.style.display='block';}
-  btn.disabled=false;btn.textContent='Confirm Booking';
+    const r = await fetch('/api/prescriptions/patient/' + user.id);
+    const d = await r.json();
+
+    const rx = d.prescriptions || [];
+
+    el.innerHTML = rx.map(r => `
+      <div>
+        ${r.medicine} - ${r.dosage}
+      </div>
+    `).join('');
+
+  } catch {
+    el.innerHTML = 'Error loading prescriptions';
+  }
 }
 
-function signOut(){localStorage.removeItem('user');location.href='login-patient.html';}
+// ── BOOK APPOINTMENT ─────────────
+async function book(doctor_id) {
+  try {
+    const r = await fetch('/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient_id: user.id,
+        doctor_id,
+        date: new Date().toISOString().split('T')[0],
+        time: '10:00 AM'
+      })
+    });
 
-function googleTranslateElementInit(){
-  new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'hi,mr,ta,te,en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element');
+    const d = await r.json();
+
+    if (d.success) {
+      alert('Appointment booked!');
+      loadAppointments();
+    } else {
+      alert(d.message);
+    }
+
+  } catch {
+    alert('Server error');
+  }
 }
 
-// ── INIT ──────────────────────────────────────────────
+// ── SIGN OUT ─────────────
+function signOut() {
+  localStorage.removeItem('user');
+  location.href = 'login-patient.html';
+}
+
+// ── INIT ─────────────
 loadDoctors();
-loadMyAppointments();
+loadAppointments();
+loadPrescriptions();
+
 </script>
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>

@@ -292,312 +292,124 @@
 </div>
 
 <script>
-// ── AUTH GUARD ─────────────────────────────────────────
+
+// ── AUTH ─────────────
 const uRaw = localStorage.getItem('user');
 if (!uRaw) location.href = 'login-doctor.html';
-const user = JSON.parse(uRaw || '{}');
+
+const user = JSON.parse(uRaw);
 if (user.role !== 'doctor') location.href = 'login-patient.html';
 
-// Set profile header
-const initials = user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-document.getElementById('docAvatarBig').textContent = initials;
-document.getElementById('docFullName').textContent  = 'Dr. ' + user.name;
-document.getElementById('docSpec').textContent       = user.specialization || 'Doctor';
+document.getElementById('docName').textContent = 'Dr. ' + user.name;
 
-// ── A11Y ──────────────────────────────────────────────
-const A11y = {
-  fontSize: parseInt(localStorage.getItem('mc_fs') || '16'),
-  hiContrast: localStorage.getItem('mc_hc') === 'true',
-  speaking: false,
-  init() {
-    document.documentElement.style.fontSize = this.fontSize + 'px';
-    const l = document.getElementById('fontLabel'); if(l) l.textContent = this.fontSize+'px';
-    if (this.hiContrast) { document.body.classList.add('high-contrast'); const b=document.getElementById('contrastBtn'); if(b) b.textContent='☀️ Normal'; }
-  },
-  changeFont(d) {
-    this.fontSize = Math.min(22,Math.max(12,this.fontSize+d));
-    localStorage.setItem('mc_fs', this.fontSize);
-    document.documentElement.style.fontSize = this.fontSize+'px';
-    const l=document.getElementById('fontLabel'); if(l) l.textContent=this.fontSize+'px';
-  },
-  toggleContrast() {
-    this.hiContrast = !this.hiContrast; localStorage.setItem('mc_hc', this.hiContrast);
-    document.body.classList.toggle('high-contrast', this.hiContrast);
-    const b=document.getElementById('contrastBtn'); if(b) b.textContent=this.hiContrast?'☀️ Normal':'🌑 High Contrast';
-  },
-  readPage() {
-    if (!window.speechSynthesis) { alert('TTS not supported'); return; }
-    const b=document.getElementById('ttsBtn');
-    if (this.speaking) { window.speechSynthesis.cancel(); this.speaking=false; if(b)b.textContent='🔊 Read Page'; return; }
-    const u=new SpeechSynthesisUtterance(document.querySelector('.page').innerText.substring(0,3000));
-    u.lang='en-IN'; u.rate=0.9;
-    u.onend=()=>{ this.speaking=false; if(b)b.textContent='🔊 Read Page'; };
-    this.speaking=true; if(b)b.textContent='🔇 Stop';
-    window.speechSynthesis.speak(u);
-  }
-};
-A11y.init();
+// ── LOAD APPOINTMENTS ─────────────
+async function loadAppointments() {
+  const el = document.getElementById('apptList');
 
-// ── NOTIFICATIONS ─────────────────────────────────────
-let notifs = JSON.parse(localStorage.getItem('mc_notif')||'[]');
-function addNotif(msg,type='info') {
-  notifs.unshift({id:Date.now(),msg,type,read:false,time:new Date().toLocaleTimeString()});
-  if(notifs.length>15)notifs.pop();
-  localStorage.setItem('mc_notif',JSON.stringify(notifs));
-  updateBadge(); toast(msg,type);
-}
-function updateBadge(){const b=document.getElementById('notifBadge'),n=notifs.filter(x=>!x.read).length;if(b){b.textContent=n;b.style.display=n>0?'flex':'none';}}
-function toast(msg,type){const t=document.createElement('div');t.className='mc-toast mc-toast-'+(type||'info');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.classList.add('show'),10);setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400);},3500);}
-function toggleNotif(){const dd=document.getElementById('notifDropdown');dd.classList.toggle('open');if(dd.classList.contains('open'))renderNotifPanel();}
-function renderNotifPanel(){
-  const p=document.getElementById('notifPanel');
-  if(!notifs.length){p.innerHTML='<div style="padding:16px;text-align:center;font-size:13px;color:#94a3b8">No notifications</div>';return;}
-  p.innerHTML=notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}"><div class="notif-dot" style="background:${n.type==='success'?'#16a34a':n.type==='warning'?'#d97706':'#4F6EF7'}"></div><div><div class="notif-msg">${n.msg}</div><div class="notif-time">${n.time}</div></div></div>`).join('');
-  notifs.forEach(n=>n.read=true);localStorage.setItem('mc_notif',JSON.stringify(notifs));updateBadge();
-}
-document.addEventListener('click',e=>{if(!e.target.closest('.notif-wrap'))document.getElementById('notifDropdown').classList.remove('open');});
-updateBadge();
-
-// ── SECTIONS ──────────────────────────────────────────
-function showSection(sec) {
-  ['secDashboard','secAllAppts','secRx'].forEach(id=>document.getElementById(id).style.display='none');
-  ['tabDash','tabAll','tabRx'].forEach(id=>document.getElementById(id).classList.remove('active'));
-  const map={dashboard:'secDashboard',allAppts:'secAllAppts',rxSection:'secRx'};
-  const tabMap={dashboard:'tabDash',allAppts:'tabAll',rxSection:'tabRx'};
-  document.getElementById(map[sec]).style.display='block';
-  document.getElementById(tabMap[sec]).classList.add('active');
-  if(sec==='rxSection') loadRx();
-  if(sec==='allAppts') renderAllAppts();
-}
-
-// ── DATA ──────────────────────────────────────────────
-let allAppts = [];
-const today = new Date().toISOString().split('T')[0];
-
-async function loadAll() {
   try {
-    const r = await fetch('http://localhost:5000/api/appointments/doctor/'+user.id);
+    const r = await fetch('/api/appointments/doctor/' + user.id);
     const d = await r.json();
-    allAppts = d.appointments || [];
 
-    const todayAppts  = allAppts.filter(a => a.date && a.date.startsWith(today));
-    const pending     = allAppts.filter(a => a.status==='pending');
-    const confirmed   = allAppts.filter(a => a.status==='confirmed');
-    const completed   = allAppts.filter(a => a.status==='completed');
-    const uniquePats  = [...new Set(allAppts.map(a=>a.patient_id))].length;
+    const appts = d.appointments || [];
 
-    document.getElementById('sTodayAppts').textContent  = todayAppts.length;
-    document.getElementById('sPending').textContent     = pending.length;
-    document.getElementById('sTotalPat').textContent    = uniquePats;
-    document.getElementById('sConsultations').textContent = completed.length;
-    document.getElementById('docPatCount').textContent  = uniquePats + ' patients';
+    el.innerHTML = appts.map(a => `
+      <div>
+        ${a.patient_name} | ${a.date} | ${a.time}
+        <button onclick="updateStatus(${a.id}, 'confirmed')">Accept</button>
+        <button onclick="updateStatus(${a.id}, 'cancelled')">Reject</button>
+      </div>
+    `).join('');
 
-    if(pending.length>0) addNotif('📅 You have '+pending.length+' pending appointment request(s)', 'info');
-
-    renderPending(pending);
-    renderUpcoming(confirmed);
-  } catch(err) {
-    document.getElementById('pendingList').innerHTML  = emptyState('📅','Could not load. Is the server running on port 5000?');
-    document.getElementById('upcomingList').innerHTML = emptyState('📅','Start your server with: node server.js');
-    // Still show demo counts
-    document.getElementById('sTodayAppts').textContent = '0';
-    document.getElementById('sPending').textContent    = '0';
-    document.getElementById('sTotalPat').textContent   = '0';
-    document.getElementById('sConsultations').textContent = '0';
-    document.getElementById('docPatCount').textContent = '0 patients';
+  } catch {
+    el.innerHTML = 'Error loading appointments';
   }
 }
 
-function emptyState(emoji, msg) {
-  return `<div class="empty"><div class="e">${emoji}</div><p>${msg}</p></div>`;
+// ── UPDATE STATUS ─────────────
+async function updateStatus(id, status) {
+  try {
+    const r = await fetch('/api/appointments/' + id + '/status', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+
+    const d = await r.json();
+
+    if (d.success) {
+      loadAppointments();
+    } else {
+      alert(d.message);
+    }
+
+  } catch {
+    alert('Server error');
+  }
 }
 
-// ── RENDER PENDING REQUESTS ────────────────────────────
-function renderPending(appts) {
-  const el = document.getElementById('pendingList');
-  if (!appts.length) { el.innerHTML = emptyState('✅','No pending requests. All caught up!'); return; }
-  el.innerHTML = appts.map(a => {
-    const ini = a.patient_name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-    const dateStr = a.date ? new Date(a.date).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    return `<div class="req-card" id="req-${a.id}">
-      <div class="req-top">
-        <div class="req-avatar">👤</div>
-        <div class="req-info">
-          <div class="req-name">${a.patient_name}</div>
-          <div class="req-date-row">
-            <span>📅 ${dateStr}</span>
-            <span>🕐 ${a.time}</span>
-          </div>
-        </div>
-      </div>
-      <div class="req-symptom">Appointment request — ${a.time} on ${dateStr}</div>
-      <div class="req-actions">
-        <button class="accept-btn" onclick="updateStatus(${a.id},'confirmed','req-${a.id}')">✓ Accept</button>
-        <button class="decline-btn" onclick="updateStatus(${a.id},'cancelled','req-${a.id}')">✕ Decline</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── RENDER UPCOMING (CONFIRMED) ────────────────────────
-function renderUpcoming(appts) {
-  const el = document.getElementById('upcomingList');
-  if (!appts.length) { el.innerHTML = emptyState('📋','No upcoming appointments yet.'); return; }
-  el.innerHTML = appts.map(a => {
-    const dateStr = a.date ? new Date(a.date).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    return `<div class="upcoming-card">
-      <div class="upcoming-top">
-        <div class="upcoming-avatar">👤</div>
-        <div class="upcoming-info">
-          <div class="upcoming-name">${a.patient_name}</div>
-          <div class="upcoming-sub">${a.patient_email||'Patient'}</div>
-        </div>
-        <span class="confirmed-badge">Confirmed</span>
-      </div>
-      <div class="upcoming-datetime">
-        <span>📅 ${dateStr}</span>
-        <span>🕐 ${a.time}</span>
-      </div>
-      <button class="start-consult-btn" onclick="startConsultation(${a.id},${a.patient_id||0},'${a.patient_name}','${a.patient_email||''}')">
-        🎥 Start Consultation
-      </button>
-    </div>`;
-  }).join('');
-}
-
-// ── ALL APPOINTMENTS ───────────────────────────────────
-function renderAllAppts() {
-  const el = document.getElementById('allApptList');
-  if (!allAppts.length) { el.innerHTML = emptyState('📅','No appointments yet.'); return; }
-  // Sort: pending first, then confirmed, then completed
-  const sorted = [...allAppts].sort((a,b) => {
-    const order = {pending:0,confirmed:1,completed:2,cancelled:3};
-    return (order[a.status]||9) - (order[b.status]||9);
-  });
-  el.innerHTML = sorted.map(a => {
-    const dateStr = a.date ? new Date(a.date).toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    const badgeMap = {pending:'background:#fff7ed;color:#d97706',confirmed:'background:#f0fdf4;color:#16a34a',completed:'background:#f0f9ff;color:#0284c7',cancelled:'background:#fef2f2;color:#dc2626'};
-    const style = badgeMap[a.status]||'';
-    let actions = '';
-    if(a.status==='pending') actions=`<button class="accept-btn" style="flex:unset;padding:7px 14px" onclick="updateStatus(${a.id},'confirmed',null)">✓ Accept</button><button class="decline-btn" style="flex:unset;padding:7px 14px" onclick="updateStatus(${a.id},'cancelled',null)">✕ Decline</button>`;
-    if(a.status==='confirmed') actions=`<button class="start-consult-btn" style="width:auto;padding:7px 14px;font-size:0.8125rem" onclick="startConsultation(${a.id},${a.patient_id||0},'${a.patient_name}','${a.patient_email||''}')">🎥 Consult</button><button class="accept-btn" style="flex:unset;padding:7px 14px;background:#16a34a" onclick="updateStatus(${a.id},'completed',null)">✅ Done</button>`;
-    if(a.status==='completed') actions=`<button class="accept-btn" style="flex:unset;padding:7px 14px;background:#8b5cf6" onclick="openRxModal(${a.id},${a.patient_id||0},'${a.patient_name}','${a.patient_email||''}')">💊 Prescription</button>`;
-    return `<div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:14px">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.125rem;flex-shrink:0">👤</div>
-      <div style="flex:1">
-        <div style="font-size:0.9375rem;font-weight:700;margin-bottom:4px">${a.patient_name}</div>
-        <div style="font-size:0.8125rem;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap"><span>📅 ${dateStr}</span><span>🕐 ${a.time}</span><span style="font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:999px;${style}">${a.status}</span></div>
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">${actions}</div>
-    </div>`;
-  }).join('');
-}
-
-// ── LOAD PRESCRIPTIONS ────────────────────────────────
-async function loadRx() {
+// ── LOAD PRESCRIPTIONS ─────────────
+async function loadPrescriptions() {
   const el = document.getElementById('rxList');
+
   try {
-    const r = await fetch('http://localhost:5000/api/prescriptions/doctor/'+user.id);
+    const r = await fetch('/api/prescriptions/doctor/' + user.id);
     const d = await r.json();
-    const rxs = d.prescriptions||[];
-    document.getElementById('sConsultations').textContent = rxs.length || document.getElementById('sConsultations').textContent;
-    if(!rxs.length){el.innerHTML=emptyState('💊','No prescriptions written yet.');return;}
-    el.innerHTML=rxs.map(rx=>`
-      <div class="rx-card">
-        <div class="rx-top"><div class="rx-med">💊 ${rx.medicine}</div><div class="rx-date">${new Date(rx.created_at).toLocaleDateString('en-IN')}</div></div>
-        <div class="rx-dosage">📋 ${rx.dosage}</div>
-        ${rx.notes?`<div class="rx-notes">📝 ${rx.notes}</div>`:''}
-        <div class="rx-pat">👤 Patient: ${rx.patient_name} · ${rx.patient_email||''}</div>
-      </div>`).join('');
-  } catch { el.innerHTML=emptyState('💊','Could not load prescriptions.'); }
+
+    const rx = d.prescriptions || [];
+
+    el.innerHTML = rx.map(r => `
+      <div>
+        ${r.medicine} - ${r.patient_name}
+      </div>
+    `).join('');
+
+  } catch {
+    el.innerHTML = 'Error loading prescriptions';
+  }
 }
 
-// ── ACTIONS ───────────────────────────────────────────
-async function updateStatus(id, status, cardId) {
-  try {
-    const r = await fetch('http://localhost:5000/api/appointments/'+id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
-    const d = await r.json();
-    if(d.success) {
-      addNotif('Appointment '+(status==='confirmed'?'accepted ✅':'declined ✖'),'success');
-      if(cardId) { const el=document.getElementById(cardId); if(el) el.remove(); }
-      loadAll(); // refresh counts
-    } else toast(d.message||'Failed','warning');
-  } catch { toast('Server error','warning'); }
-}
-
-// Start consultation → save context → go to video
-function startConsultation(apptId, patientId, patientName, patientEmail) {
-  // Save pending prescription context so doctor can prescribe post-consultation
-  localStorage.setItem('mc_pending_consult', JSON.stringify({apptId, patientId, patientName, patientEmail}));
-  window.location.href = 'video.html';
-}
-
-// ── PRESCRIPTION MODAL ────────────────────────────────
-function openRxModal(apptId, patientId, patientName, patientEmail) {
-  document.getElementById('rxApptId').value   = apptId;
-  document.getElementById('rxPatientId').value = patientId;
-  document.getElementById('rxPatName').textContent   = patientName;
-  document.getElementById('rxPatEmail').textContent  = patientEmail||'No email on file';
-  const ini = patientName.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
-  document.getElementById('rxAvatarInitials').textContent = ini;
-  ['rxMedicine','rxDosage','rxNotes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('rxErr').style.display=document.getElementById('rxOk').style.display='none';
-  document.getElementById('rxOverlay').classList.add('open');
-}
-function closeRxModal() { document.getElementById('rxOverlay').classList.remove('open'); }
-document.getElementById('rxOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('rxOverlay'))closeRxModal();});
-
+// ── SAVE PRESCRIPTION ─────────────
 async function savePrescription() {
-  const patient_id     = document.getElementById('rxPatientId').value;
-  const appointment_id = document.getElementById('rxApptId').value;
-  const medicine       = document.getElementById('rxMedicine').value.trim();
-  const dosage         = document.getElementById('rxDosage').value.trim();
-  const notes          = document.getElementById('rxNotes').value.trim();
-  const errEl=document.getElementById('rxErr'), okEl=document.getElementById('rxOk'), btn=document.getElementById('rxSaveBtn');
-  errEl.style.display=okEl.style.display='none';
+  const medicine = document.getElementById('med').value;
+  const dosage = document.getElementById('dos').value;
+  const patient_id = document.getElementById('pid').value;
 
-  if(!medicine){errEl.textContent='Please enter medicine name.';errEl.style.display='block';return;}
-  if(!dosage)  {errEl.textContent='Please enter dosage.';errEl.style.display='block';return;}
-  if(!patient_id||patient_id==='0'){errEl.textContent='Patient ID missing — please use the server (port 5000), not Live Server.';errEl.style.display='block';return;}
-
-  btn.disabled=true;btn.textContent='Saving...';
   try {
-    const r=await fetch('http://localhost:5000/api/prescriptions',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({patient_id,doctor_id:user.id,appointment_id,medicine,dosage,notes})});
-    const d=await r.json();
-    if(d.success){
-      okEl.textContent='✅ Prescription saved! Your patient can view it now.';okEl.style.display='block';
-      addNotif('💊 Prescription written for '+document.getElementById('rxPatName').textContent,'success');
-      // Clear pending consult context
-      localStorage.removeItem('mc_pending_consult');
-      setTimeout(closeRxModal,2000);
-    } else {errEl.textContent=d.message||'Failed.';errEl.style.display='block';}
-  } catch {errEl.textContent='Server error. Is backend running on port 5000?';errEl.style.display='block';}
-  btn.disabled=false;btn.textContent='💊 Save Prescription';
+    const r = await fetch('/api/prescriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        doctor_id: user.id,
+        patient_id,
+        medicine,
+        dosage
+      })
+    });
+
+    const d = await r.json();
+
+    if (d.success) {
+      alert('Saved!');
+      loadPrescriptions();
+    } else {
+      alert(d.message);
+    }
+
+  } catch {
+    alert('Server error');
+  }
 }
 
-// ── CHECK POST-CONSULTATION CONTEXT ───────────────────
-// If doctor just returned from video call, show rx modal automatically
-function checkPostConsult() {
-  const ctx = localStorage.getItem('mc_pending_consult');
-  if(!ctx) return;
-  const {apptId,patientId,patientName,patientEmail} = JSON.parse(ctx);
-  // Show banner prompting prescription
-  const banner = document.createElement('div');
-  banner.style.cssText='background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;padding:14px 20px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:0.875rem;font-weight:500';
-  banner.innerHTML=`<span>✅ Consultation with <strong>${patientName}</strong> ended. Write a prescription?</span><button onclick="openRxModal(${apptId},${patientId},'${patientName}','${patientEmail||''}');this.closest('div').remove()" style="padding:8px 16px;background:var(--blue);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;font-size:0.8125rem">💊 Write Prescription</button><button onclick="localStorage.removeItem('mc_pending_consult');this.closest('div').remove()" style="padding:8px 12px;background:none;border:1px solid #bbf7d0;border-radius:8px;cursor:pointer;color:#16a34a;font-family:'Inter',sans-serif;font-size:0.8125rem">Skip</button>`;
-  document.querySelector('.page').insertBefore(banner, document.querySelector('.doc-profile-card').nextSibling.nextSibling);
+// ── SIGN OUT ─────────────
+function signOut() {
+  localStorage.removeItem('user');
+  location.href = 'login-doctor.html';
 }
 
-function signOut(){localStorage.removeItem('user');location.href='login-doctor.html';}
+// ── INIT ─────────────
+loadAppointments();
+loadPrescriptions();
 
-function googleTranslateElementInit(){
-  new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'hi,mr,ta,te,en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element');
-}
-
-// ── INIT ──────────────────────────────────────────────
-loadAll();
-checkPostConsult();
 </script>
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>

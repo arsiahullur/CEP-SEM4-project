@@ -119,13 +119,40 @@ async function register(){
   const body={name,email,password:pwd};
   if(role==='doctor'){const spec=document.getElementById('spec').value;if(!spec){err.textContent='Please select specialization.';err.style.display='block';return;}body.specialization=spec;}
   btn.disabled=true;btn.textContent='Creating account...';
-  try{
-    const r=await fetch('http://localhost:5000/api/auth/register/'+role,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const d=await r.json();
-    if(d.success){ok.textContent='Account created! Redirecting to login...';ok.style.display='block';setTimeout(()=>location.href=role==='doctor'?'login-doctor.html':'login-patient.html',1400);}
-    else{err.textContent=d.message||'Registration failed.';err.style.display='block';btn.disabled=false;btn.textContent='Create Account';}
-  }catch{err.textContent='Cannot connect to server. Make sure backend is running on port 5000.';err.style.display='block';btn.disabled=false;btn.textContent='Create Account';}
-}
+try {
+  const BASE_URL = ""; // IMPORTANT FIX
+
+  const r = await fetch(BASE_URL + '/api/auth/register/' + role, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  const d = await r.json();
+
+  if (d.success) {
+    ok.textContent = 'Account created! Redirecting to login...';
+    ok.style.display = 'block';
+
+    setTimeout(() => {
+      location.href = role === 'doctor'
+        ? 'login-doctor.html'
+        : 'login-patient.html';
+    }, 1400);
+
+  } else {
+    err.textContent = d.message || 'Registration failed.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
+
+} catch (e) {
+  err.textContent = 'Server error. Please try again.';
+  err.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Create Account';
+}}
 document.addEventListener('keydown',e=>{if(e.key==='Enter')register();});
 function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'hi,mr,ta,te,en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element');}
 </script>

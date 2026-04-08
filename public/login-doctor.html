@@ -123,8 +123,8 @@ const A11y = {
 
 A11y.init();
 
-// ✅ IMPORTANT FIX
-localStorage.removeItem('user');
+// ❌ REMOVE THIS LINE (IMPORTANT)
+// localStorage.removeItem('user');
 
 // ── LOGIN ─────────────
 function togglePwd() {
@@ -152,7 +152,7 @@ async function login() {
   btn.textContent = 'Signing in...';
 
   try {
-    const r = await fetch(`/api/auth/login/doctor`, {
+    const r = await fetch('/api/auth/login/doctor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: pwd })
@@ -162,6 +162,7 @@ async function login() {
 
     if (d.success) {
       localStorage.setItem('user', JSON.stringify(d.user));
+
       ok.textContent = 'Login successful!';
       ok.style.display = 'block';
 
@@ -176,8 +177,8 @@ async function login() {
       btn.textContent = 'Sign In';
     }
 
-  } catch {
-    err.textContent = 'Cannot connect to server.';
+  } catch (e) {
+    err.textContent = 'Server error. Please try again.';
     err.style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Sign In';
@@ -196,6 +197,7 @@ function googleTranslateElementInit() {
     includedLanguages: 'hi,mr,ta,te,en'
   }, 'google_translate_element');
 }
+
 </script>
 
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
