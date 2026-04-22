@@ -1,4 +1,3 @@
-USE railway;
 CREATE DATABASE IF NOT EXISTS telehealth_db;
 USE telehealth_db;
 

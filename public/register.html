@@ -147,11 +147,9 @@ try {
     btn.textContent = 'Create Account';
   }
 
-} catch (e) {
-  err.textContent = 'Server error. Please try again.';
-  err.style.display = 'block';
-  btn.disabled = false;
-  btn.textContent = 'Create Account';
+} catch (err) {
+  console.error('Register patient error:', err); // already there
+  res.status(500).json({ success: false, message: err.message }); // 👈 CHANGE THIS
 }}
 document.addEventListener('keydown',e=>{if(e.key==='Enter')register();});
 function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'hi,mr,ta,te,en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE,autoDisplay:false},'google_translate_element');}
