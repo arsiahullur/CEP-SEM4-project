@@ -295,16 +295,29 @@
 
 // ── AUTH ─────────────
 const uRaw = localStorage.getItem('user');
-if (!uRaw) location.href = 'login-doctor.html';
+
+if (!uRaw) {
+  location.href = 'login-doctor.html';
+}
 
 const user = JSON.parse(uRaw);
-if (user.role !== 'doctor') location.href = 'login-patient.html';
 
-document.getElementById('docName').textContent = 'Dr. ' + user.name;
+if (!user || user.role !== 'doctor') {
+  location.href = 'login-doctor.html';
+}
+
+// ✅ FIXED NAME DISPLAY
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('docFullName').textContent = 'Dr. ' + user.name;
+
+  // avatar initials
+  const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+  document.getElementById('docAvatarBig').textContent = initials;
+});
 
 // ── LOAD APPOINTMENTS ─────────────
 async function loadAppointments() {
-  const el = document.getElementById('apptList');
+  const el = document.getElementById('pendingList');
 
   try {
     const r = await fetch('/api/appointments/doctor/' + user.id);
@@ -312,9 +325,15 @@ async function loadAppointments() {
 
     const appts = d.appointments || [];
 
+    if (appts.length === 0) {
+      el.innerHTML = '<p>No pending requests</p>';
+      return;
+    }
+
     el.innerHTML = appts.map(a => `
-      <div>
-        ${a.patient_name} | ${a.date} | ${a.time}
+      <div class="req-card">
+        <div>${a.patient_name}</div>
+        <div>${a.date} ${a.time}</div>
         <button onclick="updateStatus(${a.id}, 'confirmed')">Accept</button>
         <button onclick="updateStatus(${a.id}, 'cancelled')">Reject</button>
       </div>
@@ -370,9 +389,9 @@ async function loadPrescriptions() {
 
 // ── SAVE PRESCRIPTION ─────────────
 async function savePrescription() {
-  const medicine = document.getElementById('med').value;
-  const dosage = document.getElementById('dos').value;
-  const patient_id = document.getElementById('pid').value;
+  const medicine = document.getElementById('rxMedicine').value;
+  const dosage = document.getElementById('rxDosage').value;
+  const patient_id = document.getElementById('rxPatientId').value;
 
   try {
     const r = await fetch('/api/prescriptions', {
