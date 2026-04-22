@@ -31,9 +31,9 @@ router.post('/register/patient', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Register patient error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+  console.error('Register patient error:', err);
+  res.status(500).json({ success: false, message: err.message }); // 👈 IMPORTANT
+}
 });
 
 // ── DOCTOR REGISTER ───────────────────────────────────────
@@ -60,11 +60,11 @@ router.post('/register/doctor', async (req, res) => {
       message: 'Doctor registered successfully',
       user: { id: result.insertId, name, email, specialization, role: 'doctor' }
     });
-
-  } catch (err) {
-    console.error('Register doctor error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
   }
+  catch (err) {
+  console.error('Register patient error:', err);
+  res.status(500).json({ success: false, message: err.message }); // 👈 IMPORTANT
+}
 });
 
 // ── PATIENT LOGIN ─────────────────────────────────────────
@@ -89,10 +89,10 @@ router.post('/login/patient', async (req, res) => {
 
     res.json({ success: true, message: 'Login successful', user });
 
-  } catch (err) {
-    console.error('Login patient error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+} catch (err) {
+  console.error('Register patient error:', err);
+  res.status(500).json({ success: false, message: err.message }); // 👈 IMPORTANT
+}
 });
 
 // ── DOCTOR LOGIN ──────────────────────────────────────────
@@ -120,9 +120,9 @@ router.post('/login/doctor', async (req, res) => {
     res.json({ success: true, message: 'Login successful', user });
 
   } catch (err) {
-    console.error('Login doctor error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
+  console.error('Register patient error:', err);
+  res.status(500).json({ success: false, message: err.message }); // 👈 IMPORTANT
+}
 });
 
 module.exports = router;
